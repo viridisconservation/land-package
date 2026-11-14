@@ -19,3 +19,11 @@ jobs:
       - run: python -m pip install pytest jsonschema
       - run: python -m pytest -q
       - run: python land_package.py validate examples/example-field.json
+  javascript:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node --test js/land_package.test.mjs

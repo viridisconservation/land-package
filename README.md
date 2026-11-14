@@ -31,6 +31,18 @@ lp.shareable(package)                               # worked out from the privac
 lp.write(lp.seal(package), "out.json")              # seal() sets the content hash
 ```
 
+In JavaScript (browsers and Node.js 19 or later), `js/land_package.mjs` gives the same verdicts:
+
+```js
+import { validate, summarize, shareable } from "./js/land_package.mjs";
+
+const { errors, warnings } = await validate(pkg);   // checks structure and the hash
+if (!errors.length) console.log(summarize(pkg));
+```
+
+It runs where it is called and sends nothing anywhere. You can also check a file in the browser
+at https://viridisconservation.com/ecosystem/land-package/check; the file stays on your device.
+
 ## What a package holds
 
 | Field | Meaning |
@@ -46,7 +58,7 @@ lp.write(lp.seal(package), "out.json")              # seal() sets the content ha
 | `not_retrieved` | Data the tool tried to get and could not, and what that means for the reader. Present even when empty. |
 | `receipt` | Optional. Fingerprints that let a result be reproduced. |
 | `extensions` | Optional. Tool-specific content, keyed by tool name. Readers keep what they do not understand. |
-| `integrity` | SHA-256 of the canonical JSON of everything else. |
+| `integrity` | SHA-256 of the canonical JSON (RFC 8785) of everything else, so any language can check it. |
 
 ## Rules
 
@@ -54,7 +66,7 @@ lp.write(lp.seal(package), "out.json")              # seal() sets the content ha
 - **LP2 Provenance.** A layer with features names at least one source that exists. A claim names a source or a method.
 - **LP3 Honesty.** `not_retrieved` is always present. Claim kinds are a fixed list. A measured claim must name the source of the measurement.
 - **LP4 Privacy.** The package declares location precision, personal data and consent. Whether it may be shared is worked out by the reader, never written into the file.
-- **LP5 Integrity.** A package whose hash does not match its content is invalid.
+- **LP5 Integrity.** A package whose hash does not match its content is invalid. The hash is taken over canonical JSON as defined in RFC 8785, so a reader in any language gets the same answer.
 - **LP6 Lossless.** A DFM Landscape Package v1 converted in and back out is identical, key order included.
 - **LP7 Nothing dropped silently.** Unknown layers and extensions are preserved. An unsupported geometry type is an error.
 - **LP8 Deterministic.** The same content gives the same bytes and the same hash.
@@ -82,7 +94,11 @@ in LP2, ring closure and coordinate range in LP1, and the hash in LP5 are checke
 ```
 python -m pip install pytest jsonschema
 python -m pytest -q
+node --test js/land_package.test.mjs
 ```
+
+The two validators are tested against the same recorded cases (`tests/fixtures/parity_cases.json`),
+so they agree on what is valid and say so in the same words.
 
 The DFM examples under `tests/fixtures/dfm/` are fictional landscapes copied unchanged from
 [hdfm-framework](https://github.com/jdhart81/hdfm-framework) (MIT).

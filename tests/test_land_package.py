@@ -166,3 +166,26 @@ def test_command_line(tmp_path, capsys):
     out.write_text(json.dumps(broken))
     assert lp.main(["validate", str(out)]) == 1
     assert lp.main([]) == 2
+
+
+def test_canonical_form_matches_javascript_on_recorded_vectors():
+    import struct
+    vectors = json.loads((Path(__file__).parent / "fixtures" / "canonical_vectors.json").read_text())
+    for hexed, want in vectors["numbers"]:
+        assert lp.canonical(struct.unpack("<d", bytes.fromhex(hexed))[0]) == want
+    for value, want in vectors["strings"]:
+        assert lp.canonical(value) == want
+    assert lp.canonical(vectors["object"]["value"]) == vectors["object"]["text"]
+    assert lp.canonical(26600.0) == "26600" == lp.canonical(26600)
+    for bad in (float("nan"), float("inf"), 2 ** 60, {1: "x"}, object()):
+        with pytest.raises(ValueError):
+            lp.canonical(bad)
+
+
+def test_recorded_parity_cases_are_current():
+    """The verdicts the JavaScript validator is tested against are this validator's verdicts."""
+    cases = json.loads((Path(__file__).parent / "fixtures" / "parity_cases.json").read_text())["cases"]
+    assert len(cases) >= 30
+    for case in cases:
+        errors, warnings = lp.validate(case["package"])
+        assert (errors, warnings, lp.shareable(case["package"])) == (case["errors"], case["warnings"], case["shareable"]), case["name"]

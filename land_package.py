@@ -15,8 +15,9 @@ Invariants
        a modelled figure cannot travel as a measurement.
   LP4  Privacy: the package declares location precision, whether it holds personal
        data, and the consent it rests on. ``shareable`` is derived, never asserted.
-  LP5  Integrity: ``integrity.content_sha256`` is the SHA-256 of the canonical JSON of
-       everything except ``integrity``. A package that does not match is invalid.
+  LP5  Integrity: ``integrity.content_sha256`` is the SHA-256 of the canonical JSON
+       (RFC 8785) of everything except ``integrity``. A package that does not match is
+       invalid. The canonical form does not depend on the language that wrote it.
   LP6  Lossless: a DFM Landscape Package converted in and back out is identical.
   LP7  Nothing is dropped silently: unknown layers and ``extensions`` are preserved;
        an unsupported geometry type is an error, not a flattening.
@@ -58,9 +59,59 @@ class LandPackageError(ValueError):
 
 # ── LP5 / LP8: canonical form and hash ───────────────────────────────────────
 
+def _number(value) -> str:
+    """A number as ECMAScript writes it, so the hash is the same in any language (LP5)."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError("not a number")
+    if isinstance(value, int):
+        if abs(value) > 9007199254740991:
+            raise ValueError("an integer beyond 2^53 cannot be written portably; store it as a string")
+        return str(value)
+    if not math.isfinite(value):
+        raise ValueError("NaN and infinity cannot be written as JSON")
+    if value == 0:
+        return "0"
+    # Shortest digits that round-trip (repr), laid out by the ECMAScript Number-to-String rules.
+    text = repr(abs(value))
+    mantissa, _, exponent = text.partition("e")
+    whole, _, frac = mantissa.partition(".")
+    digits = (whole + frac).lstrip("0")
+    point = len(whole) + (int(exponent) if exponent else 0) - (len(whole + frac) - len((whole + frac).lstrip("0")))
+    digits = digits.rstrip("0") or "0"
+    k, n = len(digits), point
+    if k <= n <= 21:
+        body = digits + "0" * (n - k)
+    elif 0 < n <= 21:
+        body = digits[:n] + "." + digits[n:]
+    elif -6 < n <= 0:
+        body = "0." + "0" * (-n) + digits
+    else:
+        body = digits[0] + ("." + digits[1:] if k > 1 else "") + "e" + ("+" if n - 1 > 0 else "-") + str(abs(n - 1))
+    return ("-" if value < 0 else "") + body
+
+
 def canonical(value: Any) -> str:
-    """Canonical JSON: sorted keys, no insignificant whitespace, UTF-8 as written."""
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
+    """Canonical JSON as in RFC 8785: keys sorted by UTF-16 code units, no whitespace,
+    numbers as ECMAScript writes them. Any language can reproduce it (LP5, LP8)."""
+    if value is None:
+        return "null"
+    if value is True:
+        return "true"
+    if value is False:
+        return "false"
+    if isinstance(value, str):
+        value.encode("utf-8")              # refuses lone surrogates
+        return json.dumps(value, ensure_ascii=False)
+    if isinstance(value, (int, float)):
+        return _number(value)
+    if isinstance(value, (list, tuple)):
+        return "[" + ",".join(canonical(v) for v in value) + "]"
+    if isinstance(value, dict):
+        if not all(isinstance(k, str) for k in value):
+            raise ValueError("object keys must be strings")
+        keys = sorted(value, key=lambda k: k.encode("utf-16-be", "surrogatepass"))
+        return "{" + ",".join(json.dumps(k, ensure_ascii=False) + ":" + canonical(value[k]) for k in keys) + "}"
+    raise ValueError(f"{type(value).__name__} cannot be written as JSON")
 
 
 def content_sha256(package: dict) -> str:
@@ -110,7 +161,7 @@ def geometry_errors(geometry: Any, where: str) -> List[str]:
         return [f"{where}: geometry is missing"]
     kind, coords = geometry.get("type"), geometry.get("coordinates")
     if kind not in GEOMETRY_TYPES:
-        return [f"{where}: geometry type {kind!r} is not supported; it is not converted or dropped (LP7)"]
+        return [f"{where}: geometry type {json.dumps(kind)} is not supported; it is not converted or dropped (LP7)"]
     if kind == "Point":
         return _position_errors(coords, where)
     if kind == "MultiPoint":
@@ -154,7 +205,7 @@ def validate(package: Any) -> Tuple[List[str], List[str]]:
         return errors, warnings
 
     if package["land_package"] != VERSION:
-        errors.append(f"land_package must be {VERSION!r}")
+        errors.append(f"land_package must be {json.dumps(VERSION)}")
     if not isinstance(package["name"], str) or not package["name"].strip():
         errors.append("name must be a non-empty string")
     if not isinstance(package["created"], str) or not re.match(r"^\d{4}-\d{2}-\d{2}", package["created"]):
@@ -194,9 +245,9 @@ def validate(package: Any) -> Tuple[List[str], List[str]]:
         sources = {}
     for sid, record in sources.items():
         if not _SOURCE_ID.match(str(sid)):
-            errors.append(f"source id {sid!r} must use letters, digits, dot, dash or underscore")
+            errors.append(f"source id {json.dumps(str(sid))} must use letters, digits, dot, dash or underscore")
         if not isinstance(record, dict) or not isinstance(record.get("title"), str) or not record["title"].strip():
-            errors.append(f"source {sid!r} needs a title (LP2)")
+            errors.append(f"source {json.dumps(str(sid))} needs a title (LP2)")
 
     layers = package["layers"]
     if not isinstance(layers, dict):
@@ -204,7 +255,7 @@ def validate(package: Any) -> Tuple[List[str], List[str]]:
         layers = {}
     for name, layer in layers.items():
         if not _NAME.match(str(name)):
-            errors.append(f"layer name {name!r} must start with a letter and use letters, digits or underscore")
+            errors.append(f"layer name {json.dumps(str(name))} must start with a letter and use letters, digits or underscore")
         if not isinstance(layer, dict) or not isinstance(layer.get("features"), list) or not isinstance(
                 layer.get("sources"), list):
             errors.append(f"layer {name}: needs a sources list and a features list")
