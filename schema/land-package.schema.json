@@ -1,0 +1,471 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://viridisconservation.com/ecosystem/land-package/land-package.schema.json",
+  "title": "Viridis Land Package v1",
+  "description": "Structure of a Land Package. Four rules are beyond JSON Schema and are checked by the reference validator: every source id a layer or claim names exists in sources (LP2); a layer with features names a source (LP2); polygon rings are closed and coordinates are within range (LP1); integrity.content_sha256 matches the content (LP5).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "land_package",
+    "name",
+    "created",
+    "generator",
+    "crs",
+    "units",
+    "subject",
+    "privacy",
+    "sources",
+    "layers",
+    "claims",
+    "not_retrieved",
+    "integrity"
+  ],
+  "properties": {
+    "land_package": {
+      "const": "1.0"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "created": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}"
+    },
+    "generator": {
+      "type": "object",
+      "required": [
+        "tool"
+      ],
+      "properties": {
+        "tool": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "crs": {
+      "const": "EPSG:4326"
+    },
+    "units": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "length",
+        "area"
+      ],
+      "properties": {
+        "length": {
+          "const": "m"
+        },
+        "area": {
+          "const": "m2"
+        }
+      }
+    },
+    "subject": {
+      "type": "object",
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "property",
+            "field",
+            "woodlot",
+            "landscape"
+          ]
+        },
+        "area_m2": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "location",
+        "personal_data",
+        "consent"
+      ],
+      "properties": {
+        "location": {
+          "enum": [
+            "exact",
+            "generalized"
+          ]
+        },
+        "personal_data": {
+          "type": "boolean"
+        },
+        "consent": {
+          "enum": [
+            "holder",
+            "covered",
+            "none",
+            "not_applicable"
+          ]
+        }
+      }
+    },
+    "sources": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "url": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "license": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "layers": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "sources",
+          "features"
+        ],
+        "properties": {
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/feature"
+            }
+          }
+        }
+      }
+    },
+    "claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "statement",
+          "kind"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "statement": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "enum": [
+              "measured",
+              "modelled",
+              "estimated",
+              "derived",
+              "stated"
+            ]
+          },
+          "value": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "unit": {
+            "type": "string"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "method": {
+            "type": "string"
+          }
+        },
+        "anyOf": [
+          {
+            "required": [
+              "sources"
+            ],
+            "properties": {
+              "sources": {
+                "minItems": 1
+              }
+            }
+          },
+          {
+            "required": [
+              "method"
+            ],
+            "properties": {
+              "method": {
+                "minLength": 1
+              }
+            }
+          }
+        ]
+      }
+    },
+    "not_retrieved": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "source",
+          "status",
+          "consequence"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "failed",
+              "defaulted",
+              "estimated"
+            ]
+          },
+          "consequence": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "receipt": {
+      "type": "object"
+    },
+    "extensions": {
+      "type": "object"
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "content_sha256"
+      ],
+      "properties": {
+        "algorithm": {
+          "const": "sha256"
+        },
+        "content_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "feature": {
+      "type": "object",
+      "required": [
+        "type",
+        "geometry",
+        "properties"
+      ],
+      "properties": {
+        "type": {
+          "const": "Feature"
+        },
+        "properties": {
+          "type": "object"
+        },
+        "geometry": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "coordinates"
+              ],
+              "properties": {
+                "type": {
+                  "const": "Point"
+                },
+                "coordinates": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "coordinates"
+              ],
+              "properties": {
+                "type": {
+                  "const": "MultiPoint"
+                },
+                "coordinates": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "array",
+                    "minItems": 2,
+                    "items": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "coordinates"
+              ],
+              "properties": {
+                "type": {
+                  "const": "LineString"
+                },
+                "coordinates": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "type": "array",
+                    "minItems": 2,
+                    "items": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "coordinates"
+              ],
+              "properties": {
+                "type": {
+                  "const": "MultiLineString"
+                },
+                "coordinates": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "array",
+                    "minItems": 2,
+                    "items": {
+                      "type": "array",
+                      "minItems": 2,
+                      "items": {
+                        "type": "number"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "coordinates"
+              ],
+              "properties": {
+                "type": {
+                  "const": "Polygon"
+                },
+                "coordinates": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "array",
+                    "minItems": 4,
+                    "items": {
+                      "type": "array",
+                      "minItems": 2,
+                      "items": {
+                        "type": "number"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "coordinates"
+              ],
+              "properties": {
+                "type": {
+                  "const": "MultiPolygon"
+                },
+                "coordinates": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "array",
+                      "minItems": 4,
+                      "items": {
+                        "type": "array",
+                        "minItems": 2,
+                        "items": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

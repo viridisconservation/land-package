@@ -1,0 +1,170 @@
+{
+  "claims": [
+    {
+      "id": "area",
+      "kind": "measured",
+      "sources": [
+        "field-walk"
+      ],
+      "statement": "Area inside the walked boundary",
+      "unit": "m2",
+      "value": 26600.0
+    },
+    {
+      "id": "rows",
+      "kind": "modelled",
+      "sources": [
+        "row-model"
+      ],
+      "statement": "Tree rows that fit at 12 m spacing",
+      "unit": "rows",
+      "value": 2
+    },
+    {
+      "id": "trees",
+      "kind": "estimated",
+      "method": "Row length divided by 3 m",
+      "statement": "Trees needed at 3 m in-row spacing",
+      "unit": "trees",
+      "value": 86
+    }
+  ],
+  "created": "2026-11-14",
+  "crs": "EPSG:4326",
+  "extensions": {
+    "example": {
+      "note": "Readers keep extensions they do not understand."
+    }
+  },
+  "generator": {
+    "tool": "hand-written example",
+    "version": "1"
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "content_sha256": "d3a05206f88a27ff72ba6f3721b4053ad67c4b22e0cf35cf275dd615e48017c8"
+  },
+  "land_package": "1.0",
+  "layers": {
+    "boundary": {
+      "features": [
+        {
+          "geometry": {
+            "coordinates": [
+              [
+                [
+                  -72.75,
+                  44.25
+                ],
+                [
+                  -72.748,
+                  44.25
+                ],
+                [
+                  -72.748,
+                  44.2515
+                ],
+                [
+                  -72.75,
+                  44.2515
+                ],
+                [
+                  -72.75,
+                  44.25
+                ]
+              ]
+            ],
+            "type": "Polygon"
+          },
+          "properties": {},
+          "type": "Feature"
+        }
+      ],
+      "sources": [
+        "field-walk"
+      ]
+    },
+    "soilSamples": {
+      "features": [],
+      "sources": []
+    },
+    "treeRows": {
+      "features": [
+        {
+          "geometry": {
+            "coordinates": [
+              [
+                -72.7498,
+                44.2504
+              ],
+              [
+                -72.7482,
+                44.2505
+              ]
+            ],
+            "type": "LineString"
+          },
+          "properties": {
+            "row": 1,
+            "status": "proposed"
+          },
+          "type": "Feature"
+        },
+        {
+          "geometry": {
+            "coordinates": [
+              [
+                -72.7498,
+                44.2509
+              ],
+              [
+                -72.7482,
+                44.251
+              ]
+            ],
+            "type": "LineString"
+          },
+          "properties": {
+            "row": 2,
+            "status": "proposed"
+          },
+          "type": "Feature"
+        }
+      ],
+      "sources": [
+        "row-model"
+      ]
+    }
+  },
+  "name": "Example field (fictional)",
+  "not_retrieved": [
+    {
+      "consequence": "Soil type is unknown; check drainage before choosing species.",
+      "source": "Soil survey",
+      "status": "failed"
+    }
+  ],
+  "privacy": {
+    "consent": "not_applicable",
+    "location": "generalized",
+    "personal_data": false
+  },
+  "sources": {
+    "field-walk": {
+      "date": "2026-10-02",
+      "title": "Field walk with a handheld GPS (fictional)"
+    },
+    "row-model": {
+      "notes": "Rows follow the contour at 12 m spacing.",
+      "title": "Tree row layout model (fictional)"
+    }
+  },
+  "subject": {
+    "area_m2": 26600.0,
+    "kind": "field"
+  },
+  "units": {
+    "area": "m2",
+    "length": "m"
+  }
+}
