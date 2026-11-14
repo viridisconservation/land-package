@@ -68,7 +68,7 @@ at https://viridisconservation.com/ecosystem/land-package/check; the file stays 
 - **LP3 Honesty.** `not_retrieved` is always present. Claim kinds are a fixed list. A measured claim must name the source of the measurement.
 - **LP4 Privacy.** The package declares location precision, personal data and consent. Whether it may be shared is worked out by the reader, never written into the file.
 - **LP5 Integrity.** A package whose hash does not match its content is invalid. The hash is taken over canonical JSON as defined in RFC 8785, so a reader in any language gets the same answer.
-- **LP6 Lossless.** A DFM Landscape Package v1 converted in and back out is identical, key order included.
+- **LP6 Lossless.** A DFM Landscape Package v1 converted in and back out has the same content. In memory the key order is kept as well; a written file sorts its keys, so a package read back from a file can differ in key order only.
 - **LP7 Nothing dropped silently.** Unknown layers and extensions are preserved. An unsupported geometry type is an error.
 - **LP8 Deterministic.** The same content gives the same hash in any language, and the same file text from the same implementation. Two implementations may lay a number out differently in the file (`1.0` and `1`); the hash is what identifies the content.
 
