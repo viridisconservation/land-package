@@ -11,7 +11,7 @@ Format description: https://viridisconservation.com/ecosystem/land-package
 
 ## Use it
 
-The reference implementation is one Python file with no dependencies (Python 3.9 or later).
+The reference implementation is one Python file with no dependencies (Python 3.10 or later).
 Copy `land_package.py` into your project, or run it directly:
 
 ```
