@@ -82,7 +82,8 @@ in LP2, ring closure and coordinate range in LP1, and the hash in LP5 are checke
 | Viridis land design reports | Write a Land Package with every report. |
 | [Dendritic Forest Management](https://dendriticforest.com/) | Its Landscape Package v1 converts in and out without loss. The tool itself does not read or write Land Packages. |
 | Viridis Ecological OS | Its [decision workspace](https://viridisconservation.com/decision-workspace) accepts a Land Package as starting evidence, and a [checker](https://viridisconservation.com/ecosystem/land-package/check) shows what a file holds. Both read the file in the browser; it is not uploaded. |
-| VergeCommon, Contour Alley Designer, Global Soil Intelligence Project | Not yet. |
+| [VergeCommon](https://vergecommon.com/) | A woodland project can download a draft or a checked plan as a Land Package, converted in the browser with `js/land_package.mjs`. Other co-op records are not exported this way. |
+| Contour Alley Designer, Global Soil Intelligence Project | Not yet. |
 
 ## Limits
 
