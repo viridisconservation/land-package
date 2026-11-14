@@ -38,3 +38,29 @@ test("summarize reports layers, claims by kind, missing data and privacy", () =>
   assert.equal(s.shareable, true);
   assert.deepEqual(s.extensions, ["example"]);
 });
+
+test("fromDfm and toDfm match the Python converter and lose nothing", async () => {
+  const { fromDfm, toDfm, dumps, seal, LandPackageError } = await import("./land_package.mjs");
+  const { cases } = read("tests/fixtures/dfm_conversion.json");
+  assert.equal(Object.keys(cases).length, 3);
+  for (const [file, want] of Object.entries(cases)) {
+    const dfm = read(`tests/fixtures/dfm/${file}`).package;
+    const before = JSON.stringify(dfm);
+    const pkg = await fromDfm(dfm);
+    assert.equal(JSON.stringify(dfm), before, "the input is not changed");
+    assert.deepEqual((await validate(pkg)).errors, []);
+    assert.equal(pkg.integrity.content_sha256, want.content_sha256, file);
+    assert.deepEqual((await validate(JSON.parse(dumps(pkg)))).errors, [], "the written text reads back valid");
+    assert.equal(pkg.privacy.consent, want.consent);
+    assert.equal(pkg.privacy.personal_data, want.personal_data);
+    assert.equal(JSON.stringify(await toDfm(pkg)), before, `${file}: round trip is exact, key order included`);
+    assert.deepEqual(await seal(pkg), pkg);
+  }
+  const dfm = read("tests/fixtures/dfm/woodlot-thinning.json").package;
+  await assert.rejects(fromDfm({ dfm_package: "2.0" }), LandPackageError);
+  await assert.rejects(fromDfm({ ...dfm, crs: "EPSG:3857" }), LandPackageError);
+  await assert.rejects(fromDfm({ ...dfm, sources: { unrecorded: { title: "x" } } }), LandPackageError);
+  const grown = await seal({ ...(await fromDfm(dfm)), layers: { ...(await fromDfm(dfm)).layers, soil: { sources: [], features: [] } } });
+  await assert.rejects(toDfm(grown), /would be lost/);
+  await assert.rejects(toDfm(read("examples/example-field.json")), /not made from a DFM/);
+});

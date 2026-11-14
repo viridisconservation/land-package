@@ -189,3 +189,14 @@ def test_recorded_parity_cases_are_current():
     for case in cases:
         errors, warnings = lp.validate(case["package"])
         assert (errors, warnings, lp.shareable(case["package"])) == (case["errors"], case["warnings"], case["shareable"]), case["name"]
+
+
+def test_recorded_dfm_conversions_are_current():
+    """The hashes the JavaScript converter is tested against are this converter's hashes."""
+    cases = json.loads((Path(__file__).parent / "fixtures" / "dfm_conversion.json").read_text())["cases"]
+    assert sorted(cases) == [p.name for p in FIXTURES]
+    for path in FIXTURES:
+        package = lp.from_dfm(json.loads(path.read_text())["package"])
+        want = cases[path.name]
+        assert (package["integrity"]["content_sha256"], package["privacy"]["consent"], package["privacy"]["personal_data"]) == (
+            want["content_sha256"], want["consent"], want["personal_data"])

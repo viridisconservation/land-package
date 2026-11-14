@@ -34,10 +34,11 @@ lp.write(lp.seal(package), "out.json")              # seal() sets the content ha
 In JavaScript (browsers and Node.js 19 or later), `js/land_package.mjs` gives the same verdicts:
 
 ```js
-import { validate, summarize, shareable } from "./js/land_package.mjs";
+import { validate, summarize, shareable, fromDfm, toDfm } from "./js/land_package.mjs";
 
 const { errors, warnings } = await validate(pkg);   // checks structure and the hash
 if (!errors.length) console.log(summarize(pkg));
+const landPackage = await fromDfm(dfmLandscapePackage);   // and toDfm(landPackage) back
 ```
 
 It runs where it is called and sends nothing anywhere. You can also check a file in the browser
@@ -69,7 +70,7 @@ at https://viridisconservation.com/ecosystem/land-package/check; the file stays 
 - **LP5 Integrity.** A package whose hash does not match its content is invalid. The hash is taken over canonical JSON as defined in RFC 8785, so a reader in any language gets the same answer.
 - **LP6 Lossless.** A DFM Landscape Package v1 converted in and back out is identical, key order included.
 - **LP7 Nothing dropped silently.** Unknown layers and extensions are preserved. An unsupported geometry type is an error.
-- **LP8 Deterministic.** The same content gives the same bytes and the same hash.
+- **LP8 Deterministic.** The same content gives the same hash in any language, and the same file text from the same implementation. Two implementations may lay a number out differently in the file (`1.0` and `1`); the hash is what identifies the content.
 
 `schema/land-package.schema.json` (JSON Schema 2020-12) covers structure. The cross-references
 in LP2, ring closure and coordinate range in LP1, and the hash in LP5 are checked by `validate()`.

@@ -166,6 +166,80 @@ export async function validate(pkg) {
   return { errors, warnings };
 }
 
+// Thrown when a package cannot be built or converted without breaking a rule.
+export class LandPackageError extends Error {
+  constructor(message) { super(message); this.name = "LandPackageError"; }
+}
+
+// A copy with integrity set from its content (LP5).
+export async function seal(pkg) {
+  const sealed = {};
+  for (const key of Object.keys(pkg)) if (key !== "integrity") sealed[key] = pkg[key];
+  const copy = JSON.parse(JSON.stringify(sealed));
+  copy.integrity = { algorithm: "sha256", content_sha256: await contentSha256(copy) };
+  return copy;
+}
+
+// The text to write to a file: sorted keys, two-space indent, newline at the end (LP8).
+export function dumps(pkg) {
+  const ordered = (value) => Array.isArray(value) ? value.map(ordered)
+    : isObject(value) ? Object.fromEntries(Object.keys(value).sort().map((key) => [key, ordered(value[key])])) : value;
+  return JSON.stringify(ordered(pkg), null, 2) + "\n";
+}
+
+const clone = (value) => JSON.parse(JSON.stringify(value));
+const sameUnits = (units) => isObject(units) && Object.keys(units).length === 2 && units.length === "m" && units.area === "m2";
+
+// LP6: wrap a DFM Landscape Package v1 as a Land Package without losing anything.
+export async function fromDfm(dfm) {
+  if (!isObject(dfm) || dfm.dfm_package !== "1.0") throw new LandPackageError('not a DFM Landscape Package v1 (dfm_package must be "1.0")');
+  if (dfm.crs !== CRS || !sameUnits(dfm.units)) throw new LandPackageError("the DFM package is not in EPSG:4326 with metres; it is not reprojected here (LP1)");
+  const layersIn = dfm.layers;
+  if (!isObject(layersIn)) throw new LandPackageError("the DFM package has no layers object");
+  const sources = clone(dfm.sources || {});
+  if (Object.prototype.hasOwnProperty.call(sources, UNRECORDED_SOURCE)) throw new LandPackageError(`the DFM package already uses the reserved source id '${UNRECORDED_SOURCE}'`);
+  const recorded = Object.keys(sources).sort();
+  const hasFeatures = (features) => Array.isArray(features) ? features.length > 0 : Boolean(features);
+  const needsPlaceholder = !recorded.length && Object.values(layersIn).some(hasFeatures);
+  if (needsPlaceholder) sources[UNRECORDED_SOURCE] = { title: "Source not recorded in the DFM Landscape Package" };
+  const layerSources = recorded.length ? recorded : needsPlaceholder ? [UNRECORDED_SOURCE] : [];
+  const layers = {};
+  for (const [name, features] of Object.entries(layersIn)) layers[name] = { sources: hasFeatures(features) ? [...layerSources] : [], features: clone(features) };
+  const parcels = layersIn.parcels || [];
+  const consents = new Set(parcels.map((feature) => (feature && feature.properties ? feature.properties.consent : undefined)));
+  const consent = !parcels.length ? "not_applicable" : consents.size === 1 && consents.has("covered") ? "covered" : "none";
+  const extra = {};
+  for (const key of Object.keys(dfm)) if (!["crs", "units", "layers"].includes(key)) extra[key] = clone(dfm[key]);
+  extra.layer_order = Object.keys(layersIn);
+  extra.top_level_order = Object.keys(dfm);
+  return seal({
+    land_package: VERSION,
+    name: String(dfm.name || "DFM Landscape Package"),
+    created: String(dfm.created || "1970-01-01"),
+    generator: { tool: String(dfm.generator || "DFM Landscape Package v1") },
+    crs: CRS, units: { length: "m", area: "m2" },
+    subject: { kind: "landscape", area_m2: null },
+    privacy: { location: "exact", personal_data: parcels.length > 0, consent },
+    sources, layers, claims: [], not_retrieved: [],
+    extensions: { dfm: extra },
+  });
+}
+
+// LP6: recover the DFM Landscape Package a Land Package was made from.
+export async function toDfm(pkg) {
+  const { errors } = await validate(pkg);
+  if (errors.length) throw new LandPackageError(errors.slice(0, 6).join("; ") + (errors.length > 6 ? `; and ${errors.length - 6} more` : ""));
+  const extra = isObject(pkg.extensions) ? pkg.extensions.dfm : undefined;
+  if (!isObject(extra) || extra.dfm_package !== "1.0") throw new LandPackageError("this Land Package was not made from a DFM Landscape Package");
+  const layers = {};
+  for (const name of extra.layer_order) layers[name] = clone(pkg.layers[name].features);
+  const added = Object.keys(pkg.layers).filter((name) => !Object.prototype.hasOwnProperty.call(layers, name));
+  if (added.length) throw new LandPackageError("layers added since conversion would be lost in DFM form: " + added.join(", "));
+  const out = {};
+  for (const key of extra.top_level_order) out[key] = key === "crs" ? CRS : key === "units" ? { length: "m", area: "m2" } : key === "layers" ? layers : clone(extra[key]);
+  return out;
+}
+
 // LP4: may this package be shown to people beyond its holder? Derived, never stored.
 export function shareable(pkg) {
   const privacy = isObject(pkg) && isObject(pkg.privacy) ? pkg.privacy : {};

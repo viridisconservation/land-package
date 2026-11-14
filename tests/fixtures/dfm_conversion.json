@@ -1,0 +1,20 @@
+{
+ "about": "What land_package.py from_dfm produces for each DFM fixture. The JavaScript fromDfm must produce a package with the same content hash.",
+ "cases": {
+  "vergecommon-plan.json": {
+   "content_sha256": "badf309c9e5017fb5503d290dfab71aa47bc8be55c67ccb8c51c98b457ca5c5b",
+   "consent": "covered",
+   "personal_data": true
+  },
+  "watershed-spine.json": {
+   "content_sha256": "aaa7de3fe1a0c4a717976753e9df43caec1d3dc379938a38794b76fd5778245a",
+   "consent": "none",
+   "personal_data": true
+  },
+  "woodlot-thinning.json": {
+   "content_sha256": "bb40afda72220b93378804756c919fc1aa7de35041d864e4c8783dbd29d9fabf",
+   "consent": "none",
+   "personal_data": true
+  }
+ }
+}
